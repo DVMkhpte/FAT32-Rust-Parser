@@ -6,7 +6,7 @@ pub struct BumpAllocator {
     heap_start: usize,      /// Start address of the heap
     heap_end: usize,        /// End address of the heap
     next: usize,            /// Next free address
-    allocations: usize,     /// Number of active allocations
+    allocations: usize,     // Number of active allocations
 }
 
 /// Empty Allocator
