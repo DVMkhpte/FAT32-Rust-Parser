@@ -1,5 +1,7 @@
 /// https://doc.rust-lang.org/rust-by-example/unsafe/asm.html
 pub fn print(s: &str) {
+    // Safety
+    // Calling inline assembly is unsafe because it may have side effects
     unsafe {
         core::arch::asm!(
             "syscall",

@@ -139,6 +139,8 @@ fn scan(cluster: u32, data_start: u32, cluster_size: u32, level: usize) {
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     // Initialize the global allocator
+    // Safety
+    // We ensure that the HEAP_MEM is valid for the allocator's use.
     unsafe {
         ALLOCATOR
             .lock()
