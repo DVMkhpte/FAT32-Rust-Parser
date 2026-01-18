@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 
+/// https://sgibala.com/01-06-single-syscall-hello-world-part-2/
+/// https://www.sobyte.net/post/2022-01/rust-fat32
+
 use core::panic::PanicInfo;
 
 extern crate rlibc;
@@ -72,6 +75,7 @@ fn scan(cluster: u32, data_start: u32, cluster_size: u32, level: usize) {
             }
         }
 
+        // Starting cluster number
         let high_cluster = u16::from_le_bytes([data[20], data[21]]) as u32;
         let low_cluster = u16::from_le_bytes([data[26], data[27]]) as u32;
         let starting_cluster = (high_cluster << 16) | low_cluster;
@@ -90,16 +94,42 @@ fn scan(cluster: u32, data_start: u32, cluster_size: u32, level: usize) {
         if _type == "FILE" {
             let size = u32::from_le_bytes([data[28], data[29], data[30], data[31]]);
             if ext.len() > 0 {
-                console::print(&format!("File Name : {}.{} / Size : {} bytes", name, ext, size));
+                console::print(&format!(
+                    "File Name : {}.{} / Size : {} bytes",
+                    name, ext, size
+                ));
             } else {
                 console::print(&format!("File Name : {} / Size : {} bytes", name, size));
+            }
+
+            if size > 0 {
+                let file_offset = data_start + ((starting_cluster - 2) * cluster_size); // File data start byte offset
+
+                let read_len = if size > 64 { 64 } else { size as usize }; // Read up to 64 bytes
+                let start = file_offset as usize;
+                let end = start + read_len;
+
+                if end <= DISK.len() {
+                    let content = &DISK[start..end];
+
+                    // Display content as ASCII,
+                    let mut text = String::new();
+                    for &b in content {
+                        if b >= 32 && b <= 126 {
+                            text.push(b as char);
+                        } else {
+                            text.push(' ');
+                        }
+                    }
+                    console::print(&format!("      Content: \"{}\"", text));
+                }
             }
         } else {
             let info = format!("Folder Name : {}", name);
             console::print(&info);
 
             if name != "." && name != ".." {
-                scan(starting_cluster, data_start, cluster_size, level + 1);
+                scan(starting_cluster, data_start, cluster_size, level + 1); // Recursive scan
             }
         }
         i += 1;
@@ -132,17 +162,17 @@ pub extern "C" fn _start() -> ! {
             disk_size
         ));
 
-        let sector_size = u16::from_le_bytes([mbr[11], mbr[12]]) as u32;
-        let reserved_sectors = u16::from_le_bytes([mbr[14], mbr[15]]) as u32;
-        let sectors_per_cluster = mbr[13] as u32;
-        let nb_FATs = mbr[16] as u32;
-        let FAT_sectors = u32::from_le_bytes([mbr[36], mbr[37], mbr[38], mbr[39]]);
-        let root_cluster = u32::from_le_bytes([mbr[44], mbr[45], mbr[46], mbr[47]]);
+        let sector_size = u16::from_le_bytes([mbr[11], mbr[12]]) as u32; // Bytes per sector
+        let reserved_sectors = u16::from_le_bytes([mbr[14], mbr[15]]) as u32; // Reserved sectors
+        let sectors_per_cluster = mbr[13] as u32; // Sectors per cluster
+        let nb_FATs = mbr[16] as u32; // Number of FATs
+        let FAT_sectors = u32::from_le_bytes([mbr[36], mbr[37], mbr[38], mbr[39]]); // Sectors per FAT
+        let root_cluster = u32::from_le_bytes([mbr[44], mbr[45], mbr[46], mbr[47]]); // Root directory starting cluster
 
         let cluster_size = sectors_per_cluster * sector_size;
         let fat_size_bytes = nb_FATs * FAT_sectors * sector_size;
 
-        let data_start = (reserved_sectors * sector_size) + fat_size_bytes;
+        let data_start = (reserved_sectors * sector_size) + fat_size_bytes; // Data region start byte offset
 
         scan(root_cluster, data_start, cluster_size, 0);
     }

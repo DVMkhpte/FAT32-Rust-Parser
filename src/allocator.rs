@@ -1,4 +1,5 @@
 /// https://doc.rust-lang.org/core/alloc/trait.GlobalAlloc.html
+/// https://nfil.dev/kernel/rust/coding/rust-kernel-allocator/
 use spin::Mutex;
 use core::alloc::{GlobalAlloc, Layout};
 

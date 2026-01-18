@@ -1,3 +1,4 @@
+/// https://doc.rust-lang.org/rust-by-example/unsafe/asm.html
 pub fn print(s: &str) {
     unsafe {
         core::arch::asm!(
