@@ -60,17 +60,17 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
 
         let alloc_start = allocator.next;
 
-        /// Align the allocation start address
+        // Align the allocation start address
         let alignment = layout.align();
         let alloc_start_aligned = (alloc_start + alignment - 1) & !(alignment - 1);
         
-        /// Calculate the end address of the allocation
+        // Calculate the end address of the allocation
         let alloc_end = match alloc_start_aligned.checked_add(layout.size()) {
             Some(end) => end,
             None => return core::ptr::null_mut(),
         };
 
-        /// Check if the allocation fits within the heap bounds
+        // Check if the allocation fits within the heap bounds
         if alloc_end > allocator.heap_end {
             core::ptr::null_mut()
         } else {
