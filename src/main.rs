@@ -7,14 +7,11 @@ extern crate rlibc;
 
 /// Use the alloc crate for heap allocations
 extern crate alloc;
-use alloc::format;
-///use alloc::string::String;
-///use alloc::vec::Vec;
-
-/// Import the console module for printing
-mod console;
+use alloc::{format, string::String};
 /// Import the custom allocator module
 mod allocator;
+/// Import the console module for printing
+mod console;
 use allocator::{BumpAllocator, Locked};
 
 /// Define the global allocator using the locked bump allocator
@@ -61,6 +58,37 @@ pub extern "C" fn _start() -> ! {
             "Valid MBR detected. Disk size: {} bytes",
             disk_size
         ));
+
+        let sector_size = u16::from_le_bytes([mbr[11], mbr[12]]) as u32;
+        let reserved_sectors = u16::from_le_bytes([mbr[14], mbr[15]]) as u32;
+        let nb_FATs = mbr[16] as u32;
+        let FAT_sectors = u32::from_le_bytes([mbr[36], mbr[37], mbr[38], mbr[39]]);
+        let root_cluster = u32::from_le_bytes([mbr[44], mbr[45], mbr[46], mbr[47]]);
+
+        let root_offset = (reserved_sectors + (nb_FATs * FAT_sectors)) * sector_size;
+
+        let offset = root_offset as usize;
+        let data = &DISK[offset..offset + 32]; // Read first 32 bytes of root directory
+
+        // Extract the file name from the directory entry
+        let mut name = String::new();
+        for i in 0..8 {
+            name.push(data[i] as char);
+        }
+
+        let mut ext = String::new();
+        for i in 8..11 {
+            ext.push(data[i] as char);
+        }
+
+        let _type = if (data[11] & 0x10) != 0 {
+            "FOLDER"
+        } else {
+            "FILE"
+        };
+
+        let info = format!("Trouve : [{}] . [{}] (Type: {})", name, ext, _type);
+        console::print(&info);
     }
 
     loop {}
